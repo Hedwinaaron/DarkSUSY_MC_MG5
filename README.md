@@ -47,9 +47,9 @@ Check the prompt shows `madspin = ON` and the `madspin_card.dat` is same as the 
 
 Also you have the option to edit `run_card.dat` to change run settings, such as number of events, center of mass enegry, etc.
 
-After you finish editing and saving the card, the event generation starts. A `lhe.gz` file will be generated under `MG5_aMC_vXXX/MSSMD/Events/run_01_decayed_1` directory.
+After you finish editing and saving the card, the event generation starts. Note: it takes ~1hr to load all UFO model parameters, so be patient. 
 
-Unzip the file to get the .lhe file:
+A `lhe.gz` file will be generated under `MG5_aMC_vXXX/MSSMD/Events/run_01_decayed_1` directory. Unzip the file to get the .lhe file:
 
     gunzip -d *.lhe.gz
 
