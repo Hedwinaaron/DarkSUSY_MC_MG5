@@ -1,0 +1,575 @@
+(* ********************************************************* *)
+(* *****                                               ***** *)
+(* *****  FeynRules model file: MSSM + broken U1D      ***** *)
+(* *****  Author: W. Shi                               ***** *)
+(* *****                                               ***** *)
+(* ********************************************************* *)
+
+(* ************************** *)
+(* *****  Information   ***** *)
+(* ************************** *)
+M$ModelName = "MSSMD";
+M$Information = { Authors->{"Wei Shi"}, Emails->{"weishi@rice.edu"}, Institutions->{"Rice University"},
+                  Date->"03.21.2018", Version->"1",
+                  References->{"C. Duhr, B. Fuks, CPC 182 (2011) 2404-2462, arXiv:1102.4191 [hep-ph]"} };
+                  
+(* v1: Initial commit for implementating Dark SUSY benchmark model used in CMS-PAS-HIG-16-035 *)
+
+(* ************************** *)
+(* *****      Flags     ***** *)
+(* ************************** *)
+$CKMDiag = False;   (* CKM  = identity or not *)
+$MNSDiag = True;   (* PMNS = identity or not *)
+FeynmanGauge = True;
+
+(* ************************** *)
+(* *****  Gauge groups  ***** *)
+(* ************************** *)
+M$GaugeGroups = {
+  U1Y  == { Abelian->True,  CouplingConstant->gp, Superfield->BSF, Charge->Y, GUTNormalization->3/5},
+  (* Add U(1)D for new gauge boson *)
+  U1D  == { Abelian->True,  CouplingConstant->gd, Superfield->XSF, Charge->X},
+  SU2L == { Abelian->False, CouplingConstant->gw, Superfield->WSF, 
+            StructureConstant->ep, Representations->{Ta,SU2D}, Definitions->{Ta[a__]->PauliSigma[a]/2, ep->Eps}},
+  SU3C == { Abelian->False, CouplingConstant->gs, Superfield->GSF,
+            StructureConstant->f,  Representations->{{T,Colour}, {Tb,Colourb}}, DTerm->dSUN} 
+};
+
+(* ************************** *)
+(* *** Interaction orders *** *)
+(* ************************** *)
+(* Add New Physics order limit, 4 NP vertexes *)
+M$InteractionOrderLimit = { {NP, 4} };
+M$InteractionOrderHierarchy = { {QCD, 1}, {NP, 2}, {QED, 2} };
+
+(* ************************** *)
+(* *****    Indices     ***** *)
+(* ************************** *)
+IndexRange[Index[SU2W]] =   Unfold[Range[3]]; IndexStyle[SU2W,j];  IndexRange[Index[SU2D]] =   Unfold[Range[2]]; IndexStyle[SU2D,k];
+IndexRange[Index[Gluon ]] = NoUnfold[Range[8]]; IndexStyle[Gluon, a];  IndexRange[Index[Colour]] = NoUnfold[Range[3]]; IndexStyle[Colour, m]; 
+IndexRange[Index[Colourb]] = NoUnfold[Range[3]]; IndexStyle[Colourb,m];
+IndexRange[Index[NEU ]] = Range[4];           IndexStyle[NEU, i];
+IndexRange[Index[CHA ]] = Range[2];           IndexStyle[CHA, i];
+IndexRange[Index[GEN ]] = Range[3];           IndexStyle[GEN, f];
+IndexRange[Index[SCA ]] = Range[6];           IndexStyle[SCA, i];
+
+(* ************************** *)
+(* *****  Superfields   ***** *)
+(* ************************** *)
+M$Superfields = {
+  VSF[1] == { ClassName->BSF, GaugeBoson->B,  Gaugino->bow}, 
+  VSF[2] == { ClassName->WSF, GaugeBoson->Wi, Gaugino->wow, Indices->{Index[SU2W]}},
+  VSF[3] == { ClassName->GSF, GaugeBoson->G,  Gaugino->gow, Indices->{Index[Gluon]}},
+  VSF[4] == { ClassName->XSF, GaugeBoson->AD, Gaugino->dow},
+  CSF[1] == { ClassName->HU, Chirality->Left, Weyl->huw, Scalar->hus, QuantumNumbers->{Y-> 1/2}, Indices->{Index[SU2D]}},
+  CSF[2] == { ClassName->HD, Chirality->Left, Weyl->hdw, Scalar->hds, QuantumNumbers->{Y->-1/2}, Indices->{Index[SU2D]}},
+  CSF[3] == { ClassName->LL, Chirality->Left, Weyl->LLw, Scalar->LLs, QuantumNumbers->{Y->-1/2}, Indices->{Index[SU2D], Index[GEN]}},
+  CSF[4] == { ClassName->ER, Chirality->Left, Weyl->ERw, Scalar->ERs, QuantumNumbers->{Y-> 1},   Indices->{Index[GEN]}},
+  CSF[5] == { ClassName->VR, Chirality->Left, Weyl->VRw, Scalar->VRs, Indices->{Index[GEN]}},
+  CSF[6] == { ClassName->QL, Chirality->Left, Weyl->QLw, Scalar->QLs, QuantumNumbers->{Y-> 1/6}, Indices->{Index[SU2D], Index[GEN], Index[Colour]}},
+  CSF[7] == { ClassName->UR, Chirality->Left, Weyl->URw, Scalar->URs, QuantumNumbers->{Y->-2/3}, Indices->{Index[GEN], Index[Colourb]}},
+  CSF[8] == { ClassName->DR, Chirality->Left, Weyl->DRw, Scalar->DRs, QuantumNumbers->{Y-> 1/3}, Indices->{Index[GEN], Index[Colourb]}}
+};
+
+(* ************************** *)
+(* *****     Fields     ***** *)
+(* ************************** *)
+M$ClassesDescription = {
+(* Gauge bosons: unphysical vector fields *)
+  V[11] == { ClassName->B, Unphysical->True, SelfConjugate->True, 
+            Definitions->{B[mu_]->-sw Z[mu]+cw A[mu]} },
+  V[12] == { ClassName->Wi, Unphysical->True, SelfConjugate->True, Indices->{Index[SU2W]}, FlavorIndex->SU2W,
+             Definitions-> {Wi[mu_,1]->(Wbar[mu]+W[mu])/Sqrt[2], Wi[mu_,2]->(Wbar[mu]-W[mu])/(I*Sqrt[2]), Wi[mu_,3]->cw Z[mu] + sw A[mu]} },
+
+(* Gauge bosons: physical vector fields *)
+  V[1] == { ClassName->A, SelfConjugate->True,  Mass->0,  Width->0,  ParticleName->"a", 
+            PDG->22, PropagatorLabel->"A", PropagatorType->Sine, PropagatorArrow->None},
+  V[2] == { ClassName->Z, SelfConjugate->True,  Mass->MZ, Width->WZ, ParticleName->"Z", 
+            PDG->23, PropagatorLabel->"Z", PropagatorType->Sine, PropagatorArrow->None},
+  V[3] == { ClassName->W, SelfConjugate->False, Mass->MW, Width->WW, ParticleName->"W+", AntiParticleName->"W-", QuantumNumbers->{Q->1},
+            PDG->24, PropagatorLabel->"W", PropagatorType->Sine, PropagatorArrow->Forward},
+  V[4] == { ClassName->G, SelfConjugate->True, Indices->{Index[Gluon]}, Mass->0, Width->0, ParticleName->"g", 
+            PDG->21, PropagatorLabel->"G", PropagatorType->C,    PropagatorArrow->None },
+(* Add physics field for dark photon *)            
+  V[5] == { ClassName->AD, SelfConjugate->True,  Mass->MAD,  Width->WAD,  ParticleName->"ad",
+            PDG->3000022, PropagatorLabel->"AD", PropagatorType->Sine, PropagatorArrow->None},
+
+(* Gauginos: unphysical Weyls *)
+  W[20] == { ClassName->bow, Unphysical->True, Chirality->Left, SelfConjugate->False,
+             Definitions->{bow[s_]:>Module[{i}, -I*Conjugate[NN[i,1]]*neuw[s,i]]}},
+  W[21] == { ClassName->wow, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[SU2W]}, FlavorIndex->SU2W,
+             Definitions->{
+               wow[s_,1]:>Module[{i},(Conjugate[UU[i,1]]*chmw[s,i]+Conjugate[VV[i,1]]*chpw[s,i])/(I*Sqrt[2])], 
+               wow[s_,2]:>Module[{i},(Conjugate[UU[i,1]]*chmw[s,i]-Conjugate[VV[i,1]]*chpw[s,i])/(-Sqrt[2])], 
+               wow[s_,3]:>Module[{i},-I*Conjugate[NN[i,2]]*neuw[s,i]]} },
+  W[22] == { ClassName->gow,  Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[Gluon]},  Definitions->{gow[inds__]->-I*goww[inds]} },
+(* Add Gaugino for U1D gauge boson *)  
+  W[27] == { ClassName->dow, Unphysical->True, Chirality->Left, SelfConjugate->False, Definitions->{dow[_] -> 0} },
+
+(* Higgsinos: unphysical Weyls *)
+  W[23] == { ClassName->huw,  Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[SU2D]}, FlavorIndex->SU2D, QuantumNumbers->{Y-> 1/2}, 
+             Definitions->{
+               huw[s_,1]:> Module[{i}, Conjugate[VV[i,2]]*chpw[s,i]], 
+               huw[s_,2]:> Module[{i}, Conjugate[NN[i,4]]*neuw[s,i]] } },
+  W[24] == { ClassName->hdw,  Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[SU2D]}, FlavorIndex->SU2D, QuantumNumbers->{Y->-1/2}, 
+             Definitions->{
+               hdw[s_,1]:> Module[{i}, Conjugate[NN[i,3]]*neuw[s,i]], 
+               hdw[s_,2]:> Module[{i}, Conjugate[UU[i,2]]*chmw[s,i]]} },
+
+(* Gauginos/Higgsinos: physical Weyls *)
+  W[1] == { ClassName->neuw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[NEU]}, FlavorIndex->NEU },
+  W[2] == { ClassName->chpw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[CHA]}, FlavorIndex->CHA, QuantumNumbers->{Q-> 1} } ,
+  W[3] == { ClassName->chmw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[CHA]}, FlavorIndex->CHA, QuantumNumbers->{Q->-1} } ,
+  W[4] == { ClassName->goww, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[Gluon]} },
+
+(* Gauginos/Higgsinos: physical Diracs *)
+  F[1] == { ClassName->neu, SelfConjugate->True,  Indices->{Index[NEU]}, FlavorIndex->NEU, WeylComponents->neuw,           
+            ParticleName->{"n1","n2","n3","n4"}, ClassMembers->{neu1,neu2,neu3,neu4}, 
+            Mass->{Mneu,Mneu1,Mneu2,Mneu3,Mneu4}, Width->{Wneu,Wneu1,Wneu2,Wneu3,Wneu4}, 
+            PDG->{1000022,1000023,1000025,1000035}, PropagatorLabel->{"neu","neu1","neu2","neu3","neu4"}, PropagatorType->Straight, PropagatorArrow->None },
+  F[2] == { ClassName->ch,  SelfConjugate->False, Indices->{Index[CHA]}, FlavorIndex->CHA, WeylComponents->{chpw,chmwbar}, 
+            ParticleName->{"x1+","x2+"}, AntiParticleName->{"x1-","x2-"}, QuantumNumbers->{Q ->1},
+            ClassMembers->{ch1,ch2}, Mass->{Mch,Mch1,Mch2}, Width->{Wch,Wch1,Wch2},
+            PDG->{1000024,1000037}, PropagatorLabel->{"ch","ch1","ch2"}, PropagatorType->Straight, PropagatorArrow->Forward },
+  F[3] == { ClassName->go,  SelfConjugate->True, Indices->{Index[Gluon]}, WeylComponents->goww, Mass->Mgo, Width->Wgo, ParticleName->"go",
+            PDG->1000021, PropagatorLabel->"go", PropagatorType->Straight, PropagatorArrow->None },          
+(* Add physics field for dark neutralino decaying from n1 *)
+  F[8] == { ClassName->neuD, SelfConjugate->True, ParticleName->"nD", Mass->MneuD, Width->WneuD,
+            PDG->3000001, PropagatorLabel->"neuD", PropagatorType->Straight, PropagatorArrow->None },
+
+(* Higgs: unphysical scalars  *)
+ S[21] == { ClassName->hus,  Unphysical->True, SelfConjugate->False, Indices->{Index[SU2D]}, FlavorIndex->SU2D, QuantumNumbers->{Y-> 1/2}, 
+            Definitions->{ hus[1]->Cos[beta]*H + Sin[beta]*GP, hus[2]-> (vu + Cos[alp]*h0 + Sin[alp]*H0 + I*Cos[beta]*A0 + I*Sin[beta]*G0)/Sqrt[2] } },
+ S[22] == { ClassName->hds,  Unphysical->True, SelfConjugate->False, Indices->{Index[SU2D]}, FlavorIndex->SU2D, QuantumNumbers->{Y->-1/2}, 
+            Definitions->{ hds[1]->(vd - Sin[alp]*h0 + Cos[alp]*H0 + I*Sin[beta]*A0 - I*Cos[beta]*G0)/Sqrt[2],hds[2]->Sin[beta]*Hbar - Cos[beta]*GPbar} },
+
+(* Higgs: physical fields and Goldstones *)
+  S[1] == { ClassName->h0, SelfConjugate->True, Mass->MH01, Width->WH01, ParticleName->"h",
+            PDG->25, PropagatorLabel->"h0", PropagatorType->ScalarDash,  PropagatorArrow->None},
+  S[2] == { ClassName->H0, SelfConjugate->True, Mass->MH02, Width->WH02, ParticleName->"h02",
+            PDG->35, PropagatorLabel->"H0", PropagatorType->ScalarDash,  PropagatorArrow->None},
+  S[3] == { ClassName->A0, SelfConjugate->True, Mass->MA0 , Width->WA0,  ParticleName->"A0" ,
+            PDG->36, PropagatorLabel->"A0", PropagatorType->ScalarDash,  PropagatorArrow->None},
+  S[4] == { ClassName->H,  SelfConjugate->False, QuantumNumbers->{Q-> 1}, Mass->MH, Width->WH, 
+            ParticleName->"H+", AntiParticleName->"H-", 
+            PDG->37,  PropagatorLabel->"H", PropagatorType->ScalarDash,  PropagatorArrow->Forward},
+  S[5] == { ClassName->G0, SelfConjugate->True, Mass->MZ, Width->WG0, Goldstone->Z,
+            ParticleName->"G0", 
+            PDG->250, PropagatorLabel->"G0", PropagatorType->D, PropagatorArrow->None},
+  S[6] == { ClassName->GP, SelfConjugate->False, QuantumNumbers->{Q-> 1}, Mass->MW, Width->WGP, Goldstone->W,
+            ParticleName->"G+", AntiParticleName->"G-",
+            PDG->251, PropagatorLabel->"GP", PropagatorType->D, PropagatorArrow->None },
+
+(* Fermions: unphysical Weyls *)
+ W[25] == { ClassName->LLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[SU2D],Index[GEN]},              FlavorIndex->SU2D, 
+            QuantumNumbers->{Y->-1/2}, 
+            Definitions->{LLw[s_,1,ff_]:>Module[{ff2}, PMNS[ff,ff2]*vLw[s,ff2]], LLw[s_,2,ff_]->eLw[s,ff]}},
+ W[26] == { ClassName->QLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[SU2D],Index[GEN],Index[Colour]},FlavorIndex->SU2D,
+            QuantumNumbers->{Y->1/6},
+            Definitions->{QLw[s_,1,ff_,cc_]->uLw[s,ff,cc], QLw[s_,2,ff_,cc_]:>Module[{ff2}, CKM[ff,ff2] dLw[s,ff2,cc]]}},
+
+(* Fermions: physical Weyls *)
+  W[5] == { ClassName->vLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN },
+  W[6] == { ClassName->eLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN },
+  W[7] == { ClassName->VRw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN },
+  W[8] == { ClassName->ERw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, QuantumNumbers->{Y-> 1} },
+  W[9] == { ClassName->uLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN],Index[Colour]},  FlavorIndex->GEN },
+  W[10]== { ClassName->dLw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN],Index[Colour]},  FlavorIndex->GEN },
+  W[11]== { ClassName->URw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN],Index[Colourb]}, FlavorIndex->GEN, QuantumNumbers->{Y->-2/3} },
+  W[12]== { ClassName->DRw, Unphysical->True, Chirality->Left, SelfConjugate->False, Indices->{Index[GEN],Index[Colourb]}, FlavorIndex->GEN, QuantumNumbers->{Y-> 1/3} },
+
+(* Fermions: physical Dirac *)
+  F[4] == { ClassName->vl, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, WeylComponents->{vLw,VRwbar},
+            ParticleName->{"ve","vm","vt"}, AntiParticleName->{"ve~","vm~","vt~"},
+            ClassMembers->{ve,vm,vt}, Mass->{Mvl,Mve,Mvm,Mvt}, Width->0,
+            PDG->{12,14,16}, PropagatorLabel->{"v","ve","vm","vt"}, PropagatorType->Straight, PropagatorArrow->Forward},
+  F[5] == { ClassName->l, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, WeylComponents->{eLw,ERwbar}, QuantumNumbers->{Q->-1,X->0},
+            ParticleName->{"e-","mu-","tau-"}, AntiParticleName->{"e+","mu+","tau+"},
+            ClassMembers->{e,m,ta}, Mass->{Ml,Me,Mm,Mta}, Width->0,
+            PDG->{11,13,15}, PropagatorLabel->{"l","e","mu","tau"}, PropagatorType->Straight, PropagatorArrow->Forward},
+  F[6] == { ClassName->uq, SelfConjugate->False, Indices->{Index[GEN],Index[Colour]}, FlavorIndex->GEN, WeylComponents->{uLw,URwbar}, QuantumNumbers->{Q-> 2/3},
+            ParticleName->{"u","c","t"}, AntiParticleName->{"u~","c~","t~"},
+            ClassMembers->{u,c,t}, Mass->{Muq,MU,MC,MT}, Width->{Wuq,0,0,WT},
+            PDG->{2,4,6}, PropagatorLabel->{"uq","u","c","t"}, PropagatorType->Straight, PropagatorArrow->Forward},
+  F[7] == { ClassName->dq, SelfConjugate->False, Indices->{Index[GEN],Index[Colour]}, FlavorIndex->GEN, WeylComponents->{dLw,DRwbar}, QuantumNumbers->{Q->-1/3},
+            ParticleName->{"d","s","b"}, AntiParticleName->{"d~","s~","b~"},
+            ClassMembers->{d,s,b}, Mass->{Mdq,MD,MS,MB}, Width->0,
+            PDG->{1,3,5}, PropagatorLabel->{"dq","d","s","b"}, PropagatorType->Straight, PropagatorArrow->Forward},
+
+(* Sfermion: unphysical scalars *)
+ S[23] == { ClassName->LLs,  Unphysical->True, SelfConjugate->False, Indices->{Index[SU2D], Index[GEN]}, FlavorIndex->SU2D, QuantumNumbers->{Y->-1/2}, 
+            Definitions->{ LLs[1,ff_] :> Module[{ff2,ff3}, Conjugate[Rn[ff3,ff2]]*PMNS[ff,ff2]*sn[ff3]], LLs[2,ff_]:> Module[{ff2}, Conjugate[RlL[ff2,ff]]*sl[ff2]] } },
+ S[24] == { ClassName->ERs, Unphysical->True, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, QuantumNumbers->{Y-> 1}, 
+            Definitions->{ ERs[ff_] :> Module[{ff2}, slbar[ff2]*RlR[ff2,ff]]} },
+ S[25] == { ClassName->VRs, Unphysical->True, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, 
+            Definitions->{ VRs[_] -> 0 } },
+ S[26] == { ClassName->QLs,  Unphysical->True, SelfConjugate->False, Indices->{Index[SU2D], Index[GEN],Index[Colour]}, FlavorIndex->SU2D, QuantumNumbers->{Y->1/6}, 
+            Definitions->{ 
+              QLs[1,ff_,cc_]:>Module[{ff2},Conjugate[RuL[ff2,ff]]*su[ff2,cc]], 
+              QLs[2,ff_,cc_]:>Module[{ff2,ff3},Conjugate[RdL[ff2,ff3]]*CKM[ff,ff3]*sd[ff2,cc]]}},
+ S[27] == { ClassName->URs, Unphysical->True, SelfConjugate->False, Indices->{Index[GEN],Index[Colourb]}, FlavorIndex->GEN, QuantumNumbers->{Y->-2/3}, 
+            Definitions->{ URs[ff_,cc_]:>Module[{ff2}, subar[ff2,cc]*RuR[ff2,ff]]} },
+ S[28] == { ClassName->DRs, Unphysical->True, SelfConjugate->False, Indices->{Index[GEN],Index[Colourb]}, FlavorIndex->GEN, QuantumNumbers->{Y-> 1/3},
+            Definitions->{ DRs[ff_,cc_]:>Module[{ff2}, sdbar[ff2,cc]*RdR[ff2,ff]]} },
+
+(* Sfermion: physical scalars *)
+ S[7] == {  ClassName->sn, SelfConjugate->False, Indices->{Index[GEN]}, FlavorIndex->GEN, 
+            ParticleName->{"sv1","sv2","sv3"}, AntiParticleName->{"sv1~","sv2~","sv3~"},
+            ClassMembers-> {sn1, sn2, sn3}, Mass->{Msn,Msn1,Msn2,Msn3}, Width->{Wsn,Wsn1,Wsn2,Wsn3},
+            PDG->{1000012,1000014,1000016}, PropagatorLabel->{"sn","sn1","sn2","sn3"}, PropagatorType->ScalarDash, PropagatorArrow->Forward },
+ S[8] == {  ClassName->sl, SelfConjugate->False, Indices->{Index[SCA]}, FlavorIndex->SCA, QuantumNumbers->{Q->-1},
+            ParticleName->{"sl1-","sl2-","sl3-","sl4-","sl5-","sl6-"}, AntiParticleName->{"sl1+","sl2+","sl3+","sl4+","sl5+","sl6+"},
+            ClassMembers->{sl1,sl2,sl3,sl4,sl5,sl6}, Mass->{Msl,Msl1,Msl2,Msl3,Msl4,Msl5,Msl6}, Width->{Wsl,Wsl1,Wsl2,Wsl3,Wsl4,Wsl5,Wsl6},
+            PDG->{1000011,1000013,1000015,2000011,2000013,2000015}, PropagatorLabel->{"sl","sl1","sl2","sl3","sl4","sl5","sl6"}, 
+            PropagatorType->ScalarDash, PropagatorArrow->Forward},
+ S[9] == {  ClassName->su, SelfConjugate->False, Indices->{Index[SCA],Index[Colour]}, FlavorIndex->SCA, QuantumNumbers->{Q-> 2/3},
+            ParticleName->{"su1","su2","su3","su4","su5","su6"}, AntiParticleName->{"su1~","su2~","su3~","su4~","su5~","su6~"},
+            ClassMembers->{su1,su2,su3,su4,su5,su6}, Mass->{Msu,Msu1,Msu2,Msu3,Msu4,Msu5,Msu6}, Width->{Wsu,Wsu1,Wsu2,Wsu3,Wsu4,Wsu5,Wsu6},
+            PDG->{1000002,1000004,1000006,2000002,2000004,2000006}, PropagatorLabel->{"su","su1","su2","su3","su4","su5","su6"}, 
+            PropagatorType->ScalarDash, PropagatorArrow->Forward},
+ S[10]== {  ClassName->sd, SelfConjugate->False, Indices->{Index[SCA],Index[Colour]}, FlavorIndex->SCA, QuantumNumbers->{Q->-1/3},
+            ParticleName->{"sd1","sd2","sd3","sd4","sd5","sd6"}, AntiParticleName->{"sd1~","sd2~","sd3~","sd4~","sd5~","sd6~"},
+            ClassMembers->{sd1,sd2,sd3,sd4,sd5,sd6}, Mass->{Msd,Msd1,Msd2,Msd3,Msd4,Msd5,Msd6}, Width->{Wsd,Wsd1,Wsd2,Wsd3,Wsd4,Wsd5,Wsd6},
+            PDG->{1000001,1000003,1000005,2000001,2000003,2000005}, PropagatorLabel->{"sd","sd1","sd2","sd3","sd4","sd5","sd6"}, 
+            PropagatorType->ScalarDash, PropagatorArrow->Forward},
+
+(* Ghost: related to unphysical gauge bosons *)
+  U[11] == { ClassName->ghWi, Unphysical->True, SelfConjugate->False, Ghost->Wi, Indices->{Index[SU2W]}, FlavorIndex->SU2W,
+             Definitions->{ghWi[1]->(ghWp+ghWm)/Sqrt[2], ghWi[2]->(ghWm-ghWp)/(I*Sqrt[2]), ghWi[3]->cw ghZ+sw ghA} } ,
+  U[12] == { ClassName->ghB, Unphysical->True, SelfConjugate->False, Ghost->B, 
+             Definitions->{ghB->-sw ghZ+cw ghA} },
+
+(* Ghost: related to physical gauge bosons *)
+  U[1] == { ClassName->ghG, SelfConjugate->False, Indices->{Index[Gluon]}, Ghost->G, QuantumNumbers->{GhostNumber->1}, 
+            Mass->0, Width->0, ParticleName->"ghG", PropagatorLabel->"uG", PropagatorType->GhostDash, PropagatorArrow->Forward},
+  U[2] == { ClassName->ghA, SelfConjugate->False, Ghost->A, QuantumNumbers->{GhostNumber->1},
+            Mass->0, Width->0, ParticleName->"ghA", PropagatorLabel->"uA", PropagatorType->GhostDash, PropagatorArrow->Forward},
+  U[3] == { ClassName->ghZ, SelfConjugate->False, Ghost->Z, QuantumNumbers->{GhostNumber->1},
+            Mass->{MZ,Internal}, Width->WZ, ParticleName->"ghZ", PropagatorLabel->"uZ", PropagatorType->GhostDash, PropagatorArrow->Forward},
+  U[4] == { ClassName->ghWp, SelfConjugate->False, Ghost->W, QuantumNumbers->{GhostNumber->1, Q->1},
+            Mass->{MW,Internal}, Width->WW, ParticleName->"ghWp", PropagatorLabel->"uWp", PropagatorType->GhostDash, PropagatorArrow->Forward},
+  U[5] == { ClassName->ghWm, SelfConjugate->False, Ghost->Wbar, QuantumNumbers->{GhostNumber->1, Q->-1},
+            Mass->{MW,Internal}, Width->WW, ParticleName->"ghWm", PropagatorLabel->"uWm", PropagatorType->GhostDash, PropagatorArrow->Forward}
+};
+
+
+(* ************************** *)
+(* *****   Parameters   ***** *)
+(* ************************** *)
+M$Parameters = {
+(* Mixing: external parameters *)
+  RMNS== { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->UPMNS,
+           Description->"Neutrino PMNS mixing matrix (real part)"},
+  IMNS== { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMUPMNS,
+           Description->"Neutrino PMNS mixing matrix (imaginary part)"},
+  RCKM== { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->VCKM,
+           Description->"CKM mixing matrix (real part)"},
+  ICKM== { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMVCKM,
+           Description->"CKM mixing matrix (imaginary part)"},
+  RNN == { ParameterType->External, ComplexParameter->False, Indices->{Index[NEU],Index[NEU]}, BlockName->NMIX,
+           Description->"Neutralino mixing matrix (real part)"},
+  INN == { ParameterType->External, ComplexParameter->False, Indices->{Index[NEU],Index[NEU]}, BlockName->IMNMIX,
+           Description->"Neutralino mixing matrix (imaginary part)"},
+  RUU == { ParameterType->External, ComplexParameter->False, Indices->{Index[CHA],Index[CHA]}, BlockName->UMIX,
+           Description->"Chargino mixing matrix U (real part)"},
+  IUU == { ParameterType->External, ComplexParameter->False, Indices->{Index[CHA],Index[CHA]}, BlockName->IMUMIX,
+           Description->"Chargino mixing matrix U (imaginary part)"},
+  RVV == { ParameterType->External, ComplexParameter->False, Indices->{Index[CHA],Index[CHA]}, BlockName->VMIX,
+           Description->"Chargino mixing matrix V (real part)"},
+  IVV == { ParameterType->External, ComplexParameter->False, Indices->{Index[CHA],Index[CHA]}, BlockName->IMVMIX,
+           Description->"Chargino mixing matrix V (imaginary part)"},
+  RRn == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->SNUMIX,
+           Description->"Sneutrino mixing matrix (real part)"},
+  IRn == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMSNUMIX,
+           Description->"Sneutrino mixing matrix (imaginary part)"},
+  RRl == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->SELMIX,
+           Description->"Slepton mixing matrix (real part)"},
+  IRl == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->IMSELMIX,
+           Description->"Slepton mixing matrix (imaginary part)"},
+  RRu == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->USQMIX,
+           Description->"Up squark mixing matrix (real part)"},
+  IRu == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->IMUSQMIX,
+           Description->"Up squark mixing matrix (imaginary part)"},
+  RRd == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->DSQMIX,
+           Description->"Down squark mixing matrix (real part)"},
+  IRd == { ParameterType->External, ComplexParameter->False, Indices->{Index[SCA],Index[SCA]}, BlockName->IMDSQMIX,
+           Description->"Down squark mixing matrix (imaginary part)"},
+  alp == { TeX->\[Alpha], ParameterType->External, ComplexParameter->False, BlockName->FRALPHA, Description-> "Neutral Higgses mixing angle"},
+
+(* Mixing: internal parameters *)
+  cw  == { TeX->Subscript[c,w],        ParameterType->Internal, ComplexParameter->False, Value->MW/MZ,        Description->"Cosine of the weak angle"},  
+  sw  == { TeX->Subscript[s,w],        ParameterType->Internal, ComplexParameter->False, Value->Sqrt[1-cw^2], Description->"Sine of the weak angle"},
+  PMNS== { TeX->Superscript[U,pmns], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, Unitary->True,
+           If[$MNSDiag, Definitions:>{PMNS[i_,j_]:>0 /;(i!=j), PMNS[i_,j_]:>1/;(i==j)}, Value->{PMNS[i_,j_]:>RMNS[i,j]+I*IMNS[i,j]}], 
+           Description-> "Neutrino PMNS mixing matrix"},
+  CKM == { TeX->Superscript[V,ckm], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, Unitary->True,
+           If[$CKMDiag, Definitions:>{CKM[i_,j_]:>0 /;(i!=j), CKM[i_,j_]:>1/;(i==j)}, Value->{CKM[i_,j_]:>RCKM[i,j]+I*ICKM[i,j]}], 
+           Description-> "CKM mixing matrix"},
+  NN  == { TeX->N, ParameterType->Internal, ComplexParameter->True, Indices->{Index[NEU],Index[NEU]}, Unitary->True,
+           Value->{NN[i_,j_]:>RNN[i,j]+I*INN[i,j]}, Description-> "Neutralino mixing matrix"},
+  UU  == { TeX->U, ParameterType->Internal, ComplexParameter->True, Indices->{Index[CHA],Index[CHA]}, Unitary->True,
+           Value->{UU[i_,j_]:>RUU[i,j]+I*IUU[i,j]}, Description-> "Chargino mixing matrix U"},
+  VV  == { TeX->V, ParameterType->Internal, ComplexParameter->True, Indices->{Index[CHA],Index[CHA]}, Unitary->True,
+           Value->{VV[i_,j_]:>RVV[i,j]+I*IVV[i,j]}, Description-> "Chargino mixing matrix V"},
+  Rl  == { TeX->Superscript[R,l], ParameterType->Internal, ComplexParameter->True, Indices->{Index[SCA],Index[SCA]}, Unitary->True,
+           Value->{Rl[i_,j_]:>RRl[i,j]+I*IRl[i,j]}, Description-> "Slepton mixing matrix"},
+  Rn  == { TeX->Superscript[R,n], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, Unitary->True,
+           Value->{Rn[i_,j_]:>RRn[i,j]+I*IRn[i,j]}, Description-> "Sneutrino mixing matrix"},
+  Ru  == { TeX->Superscript[R,u], ParameterType->Internal, ComplexParameter->True, Indices->{Index[SCA],Index[SCA]}, Unitary->True,
+           Value->{Ru[i_,j_]:>RRu[i,j]+I*IRu[i,j]}, Description-> "Up squark mixing matrix"},
+  Rd  == { TeX->Superscript[R,d], ParameterType->Internal, ComplexParameter->True, Indices->{Index[SCA],Index[SCA]}, Unitary->True,
+           Value->{Rd[i_,j_]:>RRd[i,j]+I*IRd[i,j]}, Description-> "Down squark mixing matrix"},
+
+(* Left and right parts of the sfermion mixing matrices *)
+  RlL == { TeX->Superscript[RL,l], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RlL[i_,j_]:>Rl[i,j]/;NumericQ[j]},  Description-> "Slepton mixing matrix - first three columns"},
+  RlR == { TeX->Superscript[RR,l], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RlR[i_,j_]:>Rl[i,j+3]/;NumericQ[j]},Description-> "Slepton mixing matrix - last three columns"},
+  RuL == { TeX->Superscript[RL,u], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RuL[i_,j_]:>Ru[i,j]/;NumericQ[j]},  Description-> "Up squark mixing matrix - first three columns"},
+  RuR == { TeX->Superscript[RR,u], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RuR[i_,j_]:>Ru[i,j+3]/;NumericQ[j]},Description-> "Up squark mixing matrix - last three columns"},
+  RdL == { TeX->Superscript[RL,d], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RdL[i_,j_]:>Rd[i,j]/;NumericQ[j]},  Description-> "Down squark mixing matrix - first three columns"},
+  RdR == { TeX->Superscript[RR,d], ParameterType-> Internal, ComplexParameter->True, Indices->{Index[SCA],Index[GEN]}, Unitary->False,
+            Definitions->{RdR[i_,j_]:>Rd[i,j+3]/;NumericQ[j]},Description-> "Down squark mixing matrix - last three columns"},
+
+(* Couplings constants: external parameters *)
+  aEWM1 == { TeX->Subsuperscript[\[Alpha],w,-1], ParameterType->External, ComplexParameter->False, BlockName->SMINPUTS, OrderBlock->1, InteractionOrder->{QED,-2},
+             Description->"Inverse of the EW coupling constant at the Z pole"},
+  aS    == { TeX->Subscript[\[Alpha],s],         ParameterType->External, ComplexParameter->False, BlockName->SMINPUTS, OrderBlock->3, InteractionOrder->{QCD, 2},
+             Description->"Strong coupling constant at the Z pole."},
+
+(* Couplings constants: internal parameters *)
+  ee == { TeX->e, ParameterType->Internal, ComplexParameter->False, Value->Sqrt[4 Pi / aEWM1], InteractionOrder->{QED,1}, Description->"Electric coupling constant"},
+  gs == { TeX->Subscript[g,s], ParameterType->Internal, ComplexParameter->False, Value->Sqrt[4 Pi aS],      InteractionOrder->{QCD,1}, ParameterName->G, Description->"Strong coupling constant"},
+  gp == { TeX->g', ParameterType->Internal, ComplexParameter->False, Definitions-> {gp->ee/cw}, InteractionOrder->{QED,1}, Description->"Hypercharge coupling constant at the Z pole"},
+  gw == { TeX->Subscript[g,w], ParameterType->Internal, ComplexParameter->False, Definitions-> {gw->ee/sw}, InteractionOrder->{QED,1}, Description->"Weak coupling constant at the Z pole"},
+  (* Add gd coupling definition *)   
+  gd == { TeX->Subscript[g,d], ParameterType->External, ComplexParameter->False, Value -> 0.001, InteractionOrder->{NP, 1},  Description->"U1D coupling"}, 
+  
+(* Higgs sector: external parameters *)
+  tb == { TeX->Subscript[t,b], ParameterType->External, ComplexParameter->False, BlockName->HMIX, OrderBlock->2, Description->"Ratio of the two Higgs vevs"},
+
+(* Higgs sector: internal parameters *)
+  beta == { TeX->\[Beta], ParameterType->Internal, ComplexParameter->False, Value->ArcTan[tb], Description->"Arctan of the ratio of the two Higgs vevs"},
+  vev  == { TeX->v,              ParameterType->Internal, ComplexParameter->False, Value->2*MZ*sw*cw/ee, InteractionOrder->{QED,-1}, 
+            Description->"Higgs vacuum expectation value"},
+  vd   == { TeX->Subscript[v,d], ParameterType->Internal, ComplexParameter->False, Value->vev*Cos[beta],    InteractionOrder->{QED,-1},
+            Description->"Down-type Higgs vacuum expectation value"},
+  vu   == { TeX->Subscript[v,u], ParameterType->Internal, ComplexParameter->False, Value->vev*Sin[beta],    InteractionOrder->{QED,-1},
+            Description->"Up-type Higgs vacuum expectation value"},
+
+(* Superpotential: external parameters *)
+  Ryu  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->YU,
+            Description->"Up-type quark Yukawa matrix (real part)"},
+  Iyu  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMYU,
+            Description->"Up-type quark Yukawa matrix (imaginary part)"},
+  Ryd  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->YD,
+            Description->"Down-type quark Yukawa matrix (real part)"},
+  Iyd  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMYD,
+            Description->"Down-type quark Yukawa matrix (imaginary part)"},
+  Rye  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->YE,
+            Description->"Charged lepton Yukawa matrix (real part)"},
+  Iye  == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMYE,
+            Description->"Charged lepton Yukawa matrix (imaginary part)"},
+  RMUH == { ParameterType->External, ComplexParameter->False, BlockName->HMIX,   OrderBlock->1, Description->"Off-diagonal Higgs mixing parameter (real part)"},
+  IMUH == { ParameterType->External, ComplexParameter->False, BlockName->IMHMIX, OrderBlock->1, Description->"Off-diagonal Higgs mixing parameter (imaginary part)"},
+
+(* Superpotential: internal parameters *)
+  yu  == { TeX->Superscript[y,u], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Definitions:>{yu[i_,j_]:>0 /;(i!=j)}, Value->{yu[i_,j_]:>If[i==j,Ryu[i,j]+I*Iyu[i,j]]}, InteractionOrder->{QED,1}, Description-> "Up-type quark Yukawa matrix"},
+  yd  == { TeX->Superscript[y,d], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Definitions:>{yd[i_,j_]:>0 /;(i!=j)}, Value->{yd[i_,j_]:>If[i==j,Ryd[i,j]+I*Iyd[i,j]]}, InteractionOrder->{QED,1}, Description-> "Down-type quark Yukawa matrix"},
+  ye  == { TeX->Superscript[y,e], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Definitions:>{ye[i_,j_]:>0 /;(i!=j)}, Value->{ye[i_,j_]:>If[i==j,Rye[i,j]+I*Iye[i,j]]}, InteractionOrder->{QED,1}, Description-> "Charged lepton Yukawa matrix"},
+  MUH == { TeX->\[Mu], ParameterType->Internal, ComplexParameter->True, Value->RMUH+I*IMUH, Description->"Off diagonal Higgs mixing parameter"},
+
+(* Soft terms: external parameters *)
+  RMx1 == { ParameterType->External, ComplexParameter->False, BlockName->MSOFT,   OrderBlock->1, Description->"Bino mass (real part)"},
+  IMx1 == { ParameterType->External, ComplexParameter->False, BlockName->IMMSOFT, OrderBlock->1, Description->"Bino mass (imaginary part)"},
+  RMx2 == { ParameterType->External, ComplexParameter->False, BlockName->MSOFT,   OrderBlock->2, Description->"Wino mass (real part)"},
+  IMx2 == { ParameterType->External, ComplexParameter->False, BlockName->IMMSOFT, OrderBlock->2, Description->"Wino mass (imaginary part)"},
+  RMx3 == { ParameterType->External, ComplexParameter->False, BlockName->MSOFT,   OrderBlock->3, Description->"Gluino mass (real part)"},
+  IMx3 == { ParameterType->External, ComplexParameter->False, BlockName->IMMSOFT, OrderBlock->3, Description->"Gluino mass (imaginary part)"},
+  mHu2 == { TeX->Subsuperscript[m,Subscript[H,u],2], ParameterType->External, ComplexParameter->False, BlockName->MSOFT, OrderBlock->22,
+            Description->"Up-type Higgs squared mass"},
+  mHd2 == { TeX->Subsuperscript[m,Subscript[H,d],2], ParameterType->External, ComplexParameter->False, BlockName->MSOFT, OrderBlock->21,
+            Description->"Down-type Higgs squared mass"},
+  MA2  == { TeX->Subsuperscript[m,A,2], ParameterType->External, ComplexParameter->False, BlockName->HMIX, OrderBlock->4,
+            Description->"Pseudoscalar Higgs squared mass"},
+  RmL2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->MSL2,
+            Description->"Left-handed slepton squared mass matrix (real part)"},
+  ImL2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMMSL2,
+            Description->"Left-handed slepton squared mass matrix (imaginary part)"},
+  RmE2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->MSE2,
+            Description->"Right-handed slepton squared mass matrix (real part)"},
+  ImE2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMMSE2,
+            Description->"Right-handed slepton squared mass matrix (imaginary part)"},
+  RmQ2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->MSQ2,
+            Description->"Left-handed squark squared mass matrix (real part)"},
+  ImQ2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMMSQ2,
+            Description->"Left-handed squark squared mass matrix (imaginary part)"},
+  RmU2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->MSU2,
+            Description->"Right-handed up-type squark squared mass matrix (real part)"},
+  ImU2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMMSU2,
+            Description->"Right-handed up-type squark squared mass matrix (imaginary part)"},
+  RmD2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->MSD2,
+            Description->"Right-handed down-type squark squared mass matrix (real part)"},
+  ImD2 == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMMSD2,
+            Description->"Right-handed down-type squark squared mass matrix (imaginary part)"},
+  Rte == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->TE,
+            Description->"Charged slepton trilinear coupling (real part)"},
+  Ite == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMTE,
+            Description->"Charged slepton trilinear coupling (imaginary part)"},
+  Rtu == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->TU,
+            Description->"Up-type squark trilinear coupling (real part)"},
+  Itu == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMTU,
+            Description->"Up-type squark trilinear coupling (imaginary part)"},
+  Rtd == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->TD,
+            Description->"Down-type squark trilinear coupling (real part)"},
+  Itd == { ParameterType->External, ComplexParameter->False, Indices->{Index[GEN],Index[GEN]}, BlockName->IMTD,
+            Description->"Down-type squark trilinear coupling (imaginary part)"},
+
+(* Soft terms: internal parameters *)
+  Mx1 == { TeX->Subscript[M,1], ParameterType->Internal, ComplexParameter->True, Value->RMx1+I*IMx1, Description->"Bino mass"},
+  Mx2 == { TeX->Subscript[M,2], ParameterType->Internal, ComplexParameter->True, Value->RMx2+I*IMx2, Description->"Wino mass"},
+  Mx3 == { TeX->Subscript[M,3], ParameterType->Internal, ComplexParameter->True, Value->RMx3+I*IMx3, Description->"Gluino mass"},
+  bb  == { TeX->b, ParameterType->Internal, ComplexParameter->True, Value->(mHu2-mHd2)*Tan[2*alp]/2 - MZ^2*(Cos[2*beta]*Tan[2*alp] + Sin[2*beta]/2),
+    Description->"Higgs bilinear soft term"},
+  mL2 == { TeX->Subsuperscript[m,OverTilde[L],2], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Value->{mL2[i_,j_]:>RmL2[i,j]+I*ImL2[i,j]}, Description-> "Left-handed slepton squared mass matrix"},
+  mE2 == { TeX->Subsuperscript[m,OverTilde[E],2], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Value->{mE2[i_,j_]:>RmE2[i,j]+I*ImE2[i,j]}, Description-> "Right-handed slepton squared mass matrix"},
+  mQ2 == { TeX->Subsuperscript[m,OverTilde[Q],2], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Value->{mQ2[i_,j_]:>RmQ2[i,j]+I*ImQ2[i,j]}, Description-> "Left-handed squark squared mass matrix"},
+  mU2 == { TeX->Subsuperscript[m,OverTilde[U],2], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Value->{mU2[i_,j_]:>RmU2[i,j]+I*ImU2[i,j]}, Description-> "Right-handed up-type squark squared mass matrix"},
+  mD2 == { TeX->Subsuperscript[m,OverTilde[D],2], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, 
+           Value->{mD2[i_,j_]:>RmD2[i,j]+I*ImD2[i,j]}, Description-> "Right-handed down-type squark squared mass matrix"},
+  te  == { TeX->Subscript[T,e], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, InteractionOrder->{QED,1},
+           Value->{te[i_,j_]:>Rte[i,j]+I*Ite[i,j]}, Description-> "Charged slepton trilinear coupling"},
+  tu  == { TeX->Subscript[T,u], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, InteractionOrder->{QED,1},
+           Value->{tu[i_,j_]:>Rtu[i,j]+I*Itu[i,j]}, Description-> "Up-type squark trilinear coupling"},
+  td  == { TeX->Subscript[T,d], ParameterType->Internal, ComplexParameter->True, Indices->{Index[GEN],Index[GEN]}, InteractionOrder->{QED,1},
+           Value->{td[i_,j_]:>Rtd[i,j]+I*Itd[i,j]}, Description-> "Down-type squark trilinear coupling"}
+};
+
+(* ************************** *)
+(* ****  Diracification  **** *)
+(* ************************** *)
+ToDirac[exp_]:= Module[{tmp=Expand[exp],cnt=0,prg1=0,prg2=0,prgo1=0,prgo2=0,tot},
+  Colourb=Colour;
+
+  tmp = If[Head[tmp]===Plus,List@@tmp,List[tmp]]/.Tb[a_,i_,j_]->-T[a,j,i];
+
+  tmp = OptimizeIndex[#] &/@ tmp;
+  tot=Length[tmp];
+  Print["Flavor expansion: ", ProgressIndicator[Dynamic[prg1]]];
+  tmp = Module[{}, cnt++; prg1=cnt/tot;
+     Expand[(ExpandIndices[#, FlavorExpand->{SU2W, SU2D}] /. {
+         gp->ee/cw, 
+         gw->ee/sw, 
+         cw^n_?(Mod[#,2]===0&)->(1 - sw^2)^(n/2),
+         cw^n_?(Mod[#, 2]===1 &)->(1 - sw^2)^((n - 1)/2) cw,
+         Power[PauliSigma[a_,i_?(NumericQ[#] &),j_?(NumericQ[#] &)],2]->PauliSigma[1,i,j]^2 + PauliSigma[3,i,j]^2 + PauliSigma[2,i,j]^2,
+         PauliSigma[a_,i_?(NumericQ[#] &),j_?(NumericQ[#] &)] PauliSigma[a_,k_?(NumericQ[#] &),l_?(NumericQ[#] &)]->
+           PauliSigma[1,i,j] PauliSigma[1,k,l] + PauliSigma[2,i,j] PauliSigma[2,k,l] + PauliSigma[3,i,j] PauliSigma[3,k,l]})]] &/@ tmp;
+   tmp = Plus@@tmp//.{cw^n_?(Mod[#,2]===0&)->(1 - sw^2)^(n/2), cw^n_?(Mod[#, 2]===1 &)->(1 - sw^2)^((n - 1)/2) cw};
+
+   cnt=0; tot=Length[tmp];
+   Print["Opt 1: ",ProgressIndicator[Dynamic[prgo1]]];
+   tmp = Module[{}, cnt++; prgo1=cnt/tot;OptimizeIndex[#]] &/@ (List@@tmp);
+   Print["Weyl2Dirac: ",ProgressIndicator[Dynamic[prg2]]];cnt=0;
+   tmp = Module[{}, cnt++; prg2=cnt/tot; WeylToDirac[#]] &/@ tmp; 
+   Print["Opt2: ",ProgressIndicator[Dynamic[prgo2]]];cnt=0;
+   tmp = Module[{}, cnt++; prgo2=cnt/tot;OptimizeIndex[#]] &/@ tmp; 
+   Clear[Colourb];
+Expand[Plus@@tmp]];
+
+(* ************************** *)
+(* *****   Lagrangian   ***** *)
+(* ************************** *)
+(* LVector *)
+LVector := Module[{}, Plus@@(Module[{tmp}, tmp = SF2Components[#]; Expand[tmp[[2, 5]] + tmp[[2, 6]]]] &/@ (List @@ VSFKineticTerms[]))];
+
+(* LChiral *)
+LChiral :=  Plus@@( Theta2Thetabar2Component[#] &/@ (List @@ CSFKineticTerms[]) );
+
+(* Superpotential *)
+SPot:= Module[{ff1,ff2,ff3,cc1},
+     yu[ff1,ff2] UR[ff1,cc1] (QL[1,ff2,cc1] HU[2] - QL[2,ff2,cc1] HU[1]) -
+     yd[ff1,ff3] Conjugate[CKM[ff2,ff3]] DR[ff1,cc1] (QL[1,ff2,cc1] HD[2] - QL[2,ff2,cc1] HD[1]) -
+     ye[ff1,ff2] ER[ff1]     (LL[1,ff2]     HD[2] - LL[2,ff2]     HD[1]) +
+     MUH (HU[1] HD[2] - HU[2] HD[1])];
+LSuperW:= ( Plus@@ (Module[{tmp},tmp=SF2Components[#];tmp[[2,5]]+tmp[[2,6]]] &/@ (List @@ Expand[SPot+HC[SPot]])) )/.Conjugate[CKM[a_, b_]]*CKM[a_, c_]->IndexDelta[b, c];
+
+(* Soft SUSY-breaking Lagrangian *)
+LSoft := Module[{Mino, MSca, Tri, Bil},
+  (* Gaugino mass terms *)
+    Mino:=Module[{s,gl},   Mx1*bow[s].bow[s] +  Mx2*wow[s,gl].wow[s,gl] + Mx3*goww[s,gl].goww[s,gl]];
+  (* Scalar mass terms *)
+    MSca:=Module[{ii,ff1,ff2,ff3,ff4,cc1}, 
+      - mHu2*HC[hus[ii]]*hus[ii] - mHd2*HC[hds[ii]]*hds[ii] - 
+        mL2[ff1,ff2]*HC[LLs[ii,ff1]]*LLs[ii,ff2] - mE2[ff1,ff2]*HC[ERs[ff1]]*ERs[ff2] - 
+        CKM[ff1,ff2]*mQ2[ff2,ff3]*Conjugate[CKM[ff4,ff3]]*HC[QLs[ii,ff1,cc1]]*QLs[ii,ff4,cc1] - 
+        mU2[ff1,ff2]*HC[URs[ff1,cc1]]*URs[ff2,cc1] -  mD2[ff1,ff2]*HC[DRs[ff1,cc1]]*DRs[ff2,cc1] ];
+  (* Trilinear couplings *) 
+    Tri:=-tu[ff1,ff2]*URs[ff1,cc1] (QLs[1,ff2,cc1] hus[2] - QLs[2,ff2,cc1] hus[1]) +
+          Conjugate[CKM[ff3,ff2]]*td[ff1,ff2]*DRs[ff1,cc1] (QLs[1,ff3,cc1] hds[2] - QLs[2,ff3,cc1] hds[1]) +
+          te[ff1,ff2]*ERs[ff1] (LLs[1,ff2] hds[2] - LLs[2,ff2] hds[1]) ;
+  (* Bilinear couplings *)
+    Bil:=-bb*(hus[1] hds[2] - hus[2] hds[1]);
+  (* Everything together *)
+  (Mino+HC[Mino])/2 + MSca + Tri + HC[Tri] + Bil + HC[Bil]];
+
+(* Ghost Lagrangian and gauge fixing terms *)
+LFeynmanGFix := Module[{VectorizeU,VectorizeD, Phiu,Phid,Phiu0,Phid0, phid1,phid2,phiu1,phiu2, GF1,GF2,GF3,LGF, nrules, kk,ll, LGh1,LGh2,LGh3,LGhS,LGh, genu,gend, gh,ghbar},
+  (* Expression the doublets in the nu/nd basis *)
+  VectorizeU[{a_, b_}] := Simplify[{Sqrt[2] Re[Expand[a]], Sqrt[2] Im[Expand[a]], Sqrt[2] Re[Expand[b]], Sqrt[2] Im[Expand[b]]} /. {Im[_]->0, Re[num_]->num}];
+  VectorizeD[{a_, b_}] := Simplify[{Sqrt[2] Re[Expand[a]], Sqrt[2] Im[Expand[a]], Sqrt[2] Re[Expand[b]], Sqrt[2] Im[Expand[b]]} /. {Im[_]->0, Re[num_]->num}]; 
+
+  (* Higgs doublets *)
+  Phiu = Expand[ {(phiu1 + I phiu2)/Sqrt[2], (Cos[alp]*h0+Sin[alp]*H0 + I*Cos[beta]*A0+I*Sin[beta]*G0)/Sqrt[2]} ];
+  Phid = Expand[ {(-Sin[alp]*h0+Cos[alp]*H0 + I*Sin[beta]*A0-I*Cos[beta]*G0)/Sqrt[2], (phid1 + I phid2)/Sqrt[2]} ];
+  (* vevs *)
+  Phiu0 = {0, vu/Sqrt[2]};
+  Phid0 = {vd/Sqrt[2], 0};
+  (* Back to the physical Higgses and Goldstones *)
+  nrules := {
+     phid1 -> (-Cos[beta]*GPbar - Cos[beta]*GP + Sin[beta]*Hbar + Sin[beta]*H)/Sqrt[2], 
+     phid2 -> (-Cos[beta]*GPbar + Cos[beta]*GP + Sin[beta]*Hbar - Sin[beta]*H)/(I Sqrt[2]), 
+     phiu1 -> ( Sin[beta]*GP + Sin[beta]*GPbar + Cos[beta]*H + Cos[beta]*Hbar)/Sqrt[2], 
+     phiu2 -> (Sin[beta]*GP - Sin[beta]*GPbar + Cos[beta]*H - Cos[beta]*Hbar)/(I Sqrt[2])};
+
+  (* Gauge-fixing functions *)
+  GF1     := Module[{mu}, del[B[mu]   , mu] - gp VectorizeU[-I/2 Phiu0].VectorizeU[Phiu] - gp VectorizeD[I/2 Phid0].VectorizeD[Phid] ];
+  GF2[k_] := Module[{mu}, del[Wi[mu,k], mu] - gw VectorizeU[-I/2 PauliSigma[k].Phiu0].VectorizeU[Phiu] - gw VectorizeD[-I/2 PauliSigma[k].Phid0].VectorizeD[Phid] ];
+  GF3[a_] := Module[{mu}, del[G[mu,a] , mu] ];
+  (* Gauge-fixing Lagrangian *)
+  LGF = Expand[-1/2*(GF1 HC[GF1] + Sum[GF2[kk] HC[GF2[kk]], {kk, 1, 3}]) /.nrules /. {HC[a_]->a, h0->0, H0->0, A0->0, H->0, Hbar->0}];
+  LGF = OptimizeIndex[Expand[ExpandIndices[LGF, FlavorExpand->SU2W]]];
+
+  (* Ghost Lagrangians *)
+  LGh1 = -ghBbar.del[DC[ghB,mu],mu];
+  LGh2 = -ghWibar[kk].del[DC[ghWi[kk], mu], mu];
+  LGh3 = -ghGbar[kk].del[DC[ghG[kk],mu],mu];
+  genu := {-I/2 gp IdentityMatrix[2], -I/2 gw PauliSigma[1], -I/2 gw PauliSigma[2], -I/2 gw PauliSigma[3]};
+  gend := { I/2 gp IdentityMatrix[2], -I/2 gw PauliSigma[1], -I/2 gw PauliSigma[2], -I/2 gw PauliSigma[3]};
+  gh    = {ghB,    ghWi[1],    ghWi[2],    ghWi[3]};
+  ghbar = {ghBbar, ghWibar[1], ghWibar[2], ghWibar[3]};
+  LGhS = Sum[ 
+    -ghbar[[kk]].gh[[ll]] (VectorizeU[genu[[kk]].Phiu0].VectorizeU[genu[[ll]].(Phiu+Phiu0)] + VectorizeD[gend[[kk]].Phid0].VectorizeD[gend[[ll]].(Phid+Phid0)]),
+    {kk,1,4},{ll,1,4}];
+  LGh = ExpandIndices[LGh1+LGh2+LGh3+LGhS, FlavorExpand->SU2W] /.nrules; 
+LGF+LGh];
+
+(* Add new physics n1-nD-ad *)
+(* LN1NDAD := gd*(neu1bar.Ga[mu].Ga[5].neuD)*AD[mu]; *)
+(* Option2: use imaginary number i *)
+LN1NDAD := I*gd*(neu1bar.Ga[mu].neuD)*AD[mu];
+(* Add new vertex ad-mu-mu *)
+LADMuMu := gd*(mbar.Ga[mu].m)*AD[mu];
+
+(* Collecting all the pieces together *)
+Lag := ToDirac[SolveEqMotionF[SolveEqMotionD[LVector+LChiral+LSuperW+LSoft]]] + LFeynmanGFix + LN1NDAD + LADMuMu;
