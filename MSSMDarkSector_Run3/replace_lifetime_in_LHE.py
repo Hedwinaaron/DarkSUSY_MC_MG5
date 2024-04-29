@@ -39,9 +39,9 @@ for line in f:
                                         new_line = new_line + word + '\n'
                                         word_n = 0
         if new_line == '':
-                print line.rstrip('\n')
+                print(line.rstrip('\n'))
         else:
-                print new_line.rstrip('\n')
+                print(new_line.rstrip('\n'))
 
 f.close()
 
