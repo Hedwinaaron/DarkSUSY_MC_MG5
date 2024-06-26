@@ -218,7 +218,7 @@ echo -e "All checks passed \n"
 mv ${LHEWORKDIR}/process/madevent/Events/${runlabel}/events.lhe ${LHEWORKDIR}/cmsgrid_final.lhe
 
 if [ -e replace_lifetime_in_LHE.py ]; then
-    python replace_lifetime_in_LHE.py > cmsgrid_temp.lhe
+    python3 replace_lifetime_in_LHE.py > cmsgrid_temp.lhe
     mv cmsgrid_temp.lhe cmsgrid_final.lhe
 fi
 
